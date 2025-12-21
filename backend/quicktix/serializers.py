@@ -7,6 +7,10 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import User, Event, Booking, Payment, OrganizerApplication, PasswordHistory
 from .validators import check_password_strength
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
+
+
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -54,6 +58,86 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         PasswordHistory.add_password_to_history(user, user.password)
         
         return user
+
+
+class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom JWT serializer that uses EMAIL for authentication
+    instead of username
+    """
+    # ✅ Change field name from 'username' to 'email'
+    username_field = 'email'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove username field, add email field
+        self.fields['email'] = serializers.EmailField()
+        # Remove the username field if it exists
+        self.fields.pop('username', None)
+    
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Add custom claims
+        token['email'] = user.email
+        token['username'] = user.username
+        token['role'] = user.role
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        
+        return token
+    
+    def validate(self, attrs):
+        # Get email instead of username
+        email = attrs.get('email')
+        password = attrs.get('password')
+        
+        if email and password:
+            # Authenticate using email
+            user = authenticate(
+                request=self.context.get('request'),
+                username=email,  # Django authenticate uses 'username' param but it's actually email
+                password=password
+            )
+            
+            if user:
+                if not user.is_active:
+                    raise serializers.ValidationError(
+                        'User account is disabled.',
+                        code='authorization'
+                    )
+                
+                # Get token
+                refresh = self.get_token(user)
+                
+                data = {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+                
+                # Add user data
+                data['user'] = {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'role': user.role,
+                    'status': user.status,
+                }
+                
+                return data
+            else:
+                raise serializers.ValidationError(
+                    'No active account found with the given credentials',
+                    code='authorization'
+                )
+        else:
+            raise serializers.ValidationError(
+                'Must include "email" and "password".',
+                code='authorization'
+            )
 
 
 class UserSerializer(serializers.ModelSerializer):

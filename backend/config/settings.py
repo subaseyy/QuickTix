@@ -80,6 +80,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+AUTHENTICATION_BACKENDS = [
+    'quicktix.backends.EmailBackend',  # Custom email authentication
+    'django.contrib.auth.backends.ModelBackend',  # Default (fallback)
+]
+
+
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -173,7 +179,8 @@ REST_FRAMEWORK = {
     'TIME_FORMAT': '%H:%M:%S',
 }
 
-# JWT Settings
+
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -189,6 +196,8 @@ SIMPLE_JWT = {
     
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    
+    # ✅ IMPORTANT: Set user ID field
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
     
@@ -201,6 +210,8 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
+
+
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',

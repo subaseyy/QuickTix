@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { RegisterData, useAuth } from '@/app/lib/hooks'
+
 
 interface PasswordStrength {
     score: number
@@ -10,7 +12,10 @@ interface PasswordStrength {
 }
 
 export default function RegisterForm() {
+    const { register, isLoading } = useAuth()
+
     const [formData, setFormData] = useState({
+        username: '',
         firstName: '',
         lastName: '',
         email: '',
@@ -21,7 +26,6 @@ export default function RegisterForm() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [acceptTerms, setAcceptTerms] = useState(false)
     const [errors, setErrors] = useState<{ [key: string]: string }>({})
-    const [loading, setLoading] = useState(false)
     const [apiError, setApiError] = useState('')
 
     // Password strength calculation
@@ -49,6 +53,15 @@ export default function RegisterForm() {
 
     const validateForm = () => {
         const newErrors: { [key: string]: string } = {}
+
+        // Username validation
+        if (!formData.username.trim()) {
+            newErrors.username = 'Username is required'
+        } else if (formData.username.length < 3) {
+            newErrors.username = 'Username must be at least 3 characters'
+        } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+            newErrors.username = 'Username can only contain letters, numbers, and underscores'
+        }
 
         // Name validation
         if (!formData.firstName.trim()) {
@@ -111,23 +124,44 @@ export default function RegisterForm() {
 
         if (!validateForm()) return
 
-        setLoading(true)
         setApiError('')
 
         try {
-            // TODO: Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 1500))
+            const registerData: RegisterData = {
+                username: formData.username.trim(),
+                email: formData.email.trim().toLowerCase(),
+                password: formData.password,
+                password2: formData.confirmPassword,
+                first_name: formData.firstName.trim(),
+                last_name: formData.lastName.trim(),
+            }
 
-            // Simulate API response
-            console.log('Register data:', formData)
+            await register(registerData)
+            // AuthContext handles navigation after successful registration
 
-            // Redirect to email verification or dashboard
-            // window.location.href = '/verify-email'
-
-        } catch (error) {
-            setApiError('Registration failed. This email may already be registered.')
-        } finally {
-            setLoading(false)
+        } catch (error: any) {
+            // Handle API validation errors
+            if (error.errors) {
+                const apiErrors: { [key: string]: string } = {}
+                Object.keys(error.errors).forEach((key) => {
+                    // Map API field names to form field names
+                    const fieldMap: { [key: string]: string } = {
+                        'username': 'username',
+                        'email': 'email',
+                        'password': 'password',
+                        'password2': 'confirmPassword',
+                        'first_name': 'firstName',
+                        'last_name': 'lastName',
+                    }
+                    const formField = fieldMap[key] || key
+                    apiErrors[formField] = Array.isArray(error.errors[key])
+                        ? error.errors[key][0]
+                        : error.errors[key]
+                })
+                setErrors(apiErrors)
+            } else {
+                setApiError(error.message || 'Registration failed. Please try again.')
+            }
         }
     }
 
@@ -147,6 +181,34 @@ export default function RegisterForm() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Username Field */}
+                <div>
+                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                        Username
+                    </label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <User className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            className={`input pl-10 ${errors.username ? 'input-error' : ''}`}
+                            placeholder="johndoe"
+                            autoComplete="username"
+                        />
+                    </div>
+                    {errors.username && (
+                        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" />
+                            {errors.username}
+                        </p>
+                    )}
+                </div>
+
                 {/* Name Fields */}
                 <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -392,10 +454,10 @@ export default function RegisterForm() {
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={loading}
+                    disabled={isLoading}
                     className="btn btn-primary btn-lg w-full flex items-center justify-center gap-2"
                 >
-                    {loading ? (
+                    {isLoading ? (
                         <>
                             <Loader2 className="w-5 h-5 animate-spin" />
                             Creating account...

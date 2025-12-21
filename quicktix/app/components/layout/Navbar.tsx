@@ -1,12 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Menu, X, Ticket, User, Search } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Menu, X, Ticket, User, Search, ChevronDown, LogOut, LayoutDashboard } from 'lucide-react'
+import { useAuth } from '@/app/lib/hooks'
+
 
 export default function Navbar() {
+    const { user, logout } = useAuth()
+    const router = useRouter()
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const dropdownRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         const handleScroll = () => {
@@ -16,12 +23,47 @@ export default function Navbar() {
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false)
+            }
+        }
+
+        if (isDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside)
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [isDropdownOpen])
+
+    const handleLogout = () => {
+        logout()
+        setIsDropdownOpen(false)
+        router.push('/')
+    }
+
+    const getDashboardLink = () => {
+        if (!user) return '/dashboard'
+
+        switch (user.role) {
+            case 'admin':
+                return '/admin/dashboard'
+            case 'organizer':
+                return '/organizer/dashboard'
+            default:
+                return '/dashboard'
+        }
+    }
+
     const navLinks = [
         { href: '/events', label: 'Browse Events' },
         { href: '/how-it-works', label: 'How It Works' },
         { href: '/become-organizer', label: 'Become an Organizer' },
         { href: '/about', label: 'About' },
-        { href: '/contact', label: 'Contact' },
     ]
 
     return (
@@ -67,21 +109,76 @@ export default function Navbar() {
                         >
                             <Search className="w-5 h-5" />
                         </button>
-                        <Link
-                            href="/auth/login"
-                            className={`px-4 py-2 font-medium rounded-lg transition-colors duration-200 ${isScrolled
-                                ? 'text-gray-700 hover:bg-gray-100'
-                                : 'text-white hover:bg-white/10'
-                                }`}
-                        >
-                            Sign In
-                        </Link>
-                        <Link
-                            href="/auth/register"
-                            className="btn btn-primary btn-md"
-                        >
-                            Get Started
-                        </Link>
+
+                        {user ? (
+                            // Authenticated User Dropdown
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className={`flex items-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors duration-200 ${isScrolled
+                                        ? 'text-gray-700 hover:bg-gray-100'
+                                        : 'text-white hover:bg-white/10'
+                                        }`}
+                                >
+                                    <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-full flex items-center justify-center">
+                                        <User className="w-4 h-4 text-white" />
+                                    </div>
+                                    <span>Hi, {user.first_name || user.username}</span>
+                                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {isDropdownOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 animate-slide-down">
+                                        <div className="px-4 py-3 border-b border-gray-100">
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {user.first_name} {user.last_name}
+                                            </p>
+                                            <p className="text-xs text-gray-500">{user.email}</p>
+                                            <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700">
+                                                {user.role === 'admin' ? 'Admin' : user.role === 'organizer' ? 'Organizer' : 'User'}
+                                            </span>
+                                        </div>
+
+                                        <Link
+                                            href={getDashboardLink()}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                                        >
+                                            <LayoutDashboard className="w-4 h-4" />
+                                            <span>Dashboard</span>
+                                        </Link>
+
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors duration-200"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            <span>Logout</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            // Unauthenticated Actions
+                            <>
+                                <Link
+                                    href="/auth/login"
+                                    className={`px-4 py-2 font-medium rounded-lg transition-colors duration-200 ${isScrolled
+                                        ? 'text-gray-700 hover:bg-gray-100'
+                                        : 'text-white hover:bg-white/10'
+                                        }`}
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    href="/auth/register"
+                                    className="btn btn-primary btn-md"
+                                >
+                                    Get Started
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -117,7 +214,7 @@ export default function Navbar() {
                         ))}
                         <div className="pt-4 space-y-3 border-t">
                             <Link
-                                href="/login"
+                                href="/auth/login"
                                 className="block w-full text-center btn btn-outline btn-md"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >

@@ -13,6 +13,8 @@ class User(AbstractUser):
     """
     Custom User model with role-based access
     Roles: admin, organizer, user
+    
+    ✅ UPDATED: Uses EMAIL for authentication instead of username
     """
     ROLE_CHOICES = [
         ('admin', 'Admin'),
@@ -32,6 +34,13 @@ class User(AbstractUser):
         ('other', 'Other'),
         ('prefer_not_to_say', 'Prefer not to say'),
     ]
+    
+    # ✅ CRITICAL: Set email as the USERNAME_FIELD for authentication
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']  # Fields required when creating superuser (besides email)
+    
+    # Make email unique and required
+    email = models.EmailField(unique=True)
     
     # Role and Status
     role = models.CharField(
