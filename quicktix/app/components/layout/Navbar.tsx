@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Menu, X, Ticket, User, Search, ChevronDown, LogOut, LayoutDashboard } from 'lucide-react'
+import { Menu, X, Ticket, Search, ChevronDown, LogOut, LayoutDashboard, User } from 'lucide-react'
 import { useAuth } from '@/app/lib/hooks'
 
 
@@ -56,6 +56,19 @@ export default function Navbar() {
                 return '/organizer/dashboard'
             default:
                 return '/dashboard'
+        }
+    }
+
+    const getProfileLink = () => {
+        if (!user) return '/dashboard'
+
+        switch (user.role) {
+            case 'admin':
+                return '/admin/dashboard/profile'
+            case 'organizer':
+                return '/organizer/dashboard/profile'
+            default:
+                return '/dashboard/profile'
         }
     }
 
@@ -148,6 +161,14 @@ export default function Navbar() {
                                             <LayoutDashboard className="w-4 h-4" />
                                             <span>Dashboard</span>
                                         </Link>
+                                        <Link
+                                            href={getProfileLink()}
+                                            onClick={() => setIsDropdownOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                                        >
+                                            <User className="w-4 h-4" />
+                                            <span>Profile</span>
+                                        </Link>
 
                                         <button
                                             onClick={handleLogout}
@@ -221,7 +242,7 @@ export default function Navbar() {
                                 Sign In
                             </Link>
                             <Link
-                                href="/register"
+                                href="/auth/register"
                                 className="block w-full text-center btn btn-primary btn-md"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
