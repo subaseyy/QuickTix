@@ -5,23 +5,35 @@ Django Admin Configuration for all models
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
-from .models import User, Event, Booking, Payment, OrganizerApplication
+from .models import User, Event, Booking, Payment, OrganizerApplication, PasswordHistory
 
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Admin interface for User model"""
-    list_display = ('email', 'username', 'role', 'status', 'date_joined')
-    list_filter = ('role', 'status', 'is_active', 'is_staff')
-    search_fields = ('email', 'username', 'first_name', 'last_name')
+    list_display = ('email', 'username', 'role', 'status', 'age', 'phone_number', 'date_joined')
+    list_filter = ('role', 'status', 'gender', 'country', 'is_active', 'is_staff')
+    search_fields = ('email', 'username', 'first_name', 'last_name', 'phone_number')
     ordering = ('-date_joined',)
     
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Personal Info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Personal Info', {
+            'fields': ('first_name', 'last_name', 'email', 'date_of_birth', 
+                      'gender', 'phone_number', 'profile_picture', 'bio')
+        }),
+        ('Address', {
+            'fields': ('address_line1', 'address_line2', 'city', 'state', 
+                      'country', 'postal_code'),
+            'classes': ('collapse',)
+        }),
         ('Permissions', {
             'fields': ('role', 'status', 'is_active', 'is_staff', 'is_superuser', 
                       'groups', 'user_permissions'),
+        }),
+        ('Notifications', {
+            'fields': ('email_notifications', 'sms_notifications'),
+            'classes': ('collapse',)
         }),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
@@ -29,9 +41,19 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2', 'role', 'status'),
+            'fields': ('username', 'email', 'password1', 'password2', 'role', 
+                      'status', 'date_of_birth', 'phone_number'),
         }),
     )
+    
+    readonly_fields = ('date_joined', 'last_login')
+    
+    def age(self, obj):
+        """Display age in admin list"""
+        if obj.age is not None:
+            return f"{obj.age} years"
+        return "-"
+    age.short_description = 'Age'
 
 
 @admin.register(Event)
@@ -218,3 +240,46 @@ class OrganizerApplicationAdmin(admin.ModelAdmin):
 admin.site.site_header = 'QuickTix Administration'
 admin.site.site_title = 'QuickTix Admin'
 admin.site.index_title = 'Welcome to QuickTix Admin Panel'
+
+
+@admin.register(PasswordHistory)
+class PasswordHistoryAdmin(admin.ModelAdmin):
+    """Admin interface for Password History"""
+    list_display = ('user_email', 'created_at', 'days_ago')
+    list_filter = ('created_at',)
+    search_fields = ('user__email', 'user__username')
+    date_hierarchy = 'created_at'
+    ordering = ('-created_at',)
+    readonly_fields = ('user', 'password', 'created_at')
+    
+    fieldsets = (
+        ('Password History', {
+            'fields': ('user', 'password', 'created_at')
+        }),
+    )
+    
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = 'User Email'
+    
+    def days_ago(self, obj):
+        """Show how many days ago the password was changed"""
+        from django.utils import timezone
+        delta = timezone.now() - obj.created_at
+        days = delta.days
+        
+        if days == 0:
+            return 'Today'
+        elif days == 1:
+            return 'Yesterday'
+        else:
+            return f'{days} days ago'
+    days_ago.short_description = 'Changed'
+    
+    def has_add_permission(self, request):
+        """Prevent manual addition of password history"""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Prevent modification of password history"""
+        return False

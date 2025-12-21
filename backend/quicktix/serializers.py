@@ -5,7 +5,8 @@ Django REST Framework Serializers for all models
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, Event, Booking, Payment, OrganizerApplication
+from .models import User, Event, Booking, Payment, OrganizerApplication, PasswordHistory
+from .validators import check_password_strength
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -20,41 +21,78 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'password', 'password2', 
-                  'first_name', 'last_name')
+                  'first_name', 'last_name', 'date_of_birth', 'gender',
+                  'phone_number', 'city', 'country')
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError(
                 {"password": "Password fields didn't match."}
             )
+        
+        # Validate age if date_of_birth is provided
+        if attrs.get('date_of_birth'):
+            from datetime import date
+            today = date.today()
+            age = today.year - attrs['date_of_birth'].year
+            if today.month < attrs['date_of_birth'].month or \
+               (today.month == attrs['date_of_birth'].month and today.day < attrs['date_of_birth'].day):
+                age -= 1
+            
+            if age < 13:
+                raise serializers.ValidationError(
+                    {"date_of_birth": "You must be at least 13 years old to register."}
+                )
+        
         return attrs
     
     def create(self, validated_data):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
+        
+        # Add initial password to history
+        PasswordHistory.add_password_to_history(user, user.password)
+        
         return user
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model"""
+    age = serializers.IntegerField(read_only=True)
+    is_adult = serializers.BooleanField(read_only=True)
+    full_address = serializers.CharField(read_only=True)
+    
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 
-                  'role', 'status', 'date_joined')
-        read_only_fields = ('id', 'role', 'status', 'date_joined')
+                  'role', 'status', 'date_of_birth', 'age', 'is_adult',
+                  'gender', 'phone_number', 'profile_picture', 'bio',
+                  'address_line1', 'address_line2', 'city', 'state', 
+                  'country', 'postal_code', 'full_address',
+                  'email_notifications', 'sms_notifications', 'date_joined')
+        read_only_fields = ('id', 'role', 'status', 'date_joined', 'age', 
+                           'is_adult', 'full_address')
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Detailed user profile serializer"""
     total_bookings = serializers.SerializerMethodField()
     total_events_organized = serializers.SerializerMethodField()
+    age = serializers.IntegerField(read_only=True)
+    is_adult = serializers.BooleanField(read_only=True)
+    full_address = serializers.CharField(read_only=True)
     
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 
-                  'role', 'status', 'date_joined', 'total_bookings', 
-                  'total_events_organized')
-        read_only_fields = ('id', 'role', 'status', 'date_joined')
+                  'role', 'status', 'date_of_birth', 'age', 'is_adult',
+                  'gender', 'phone_number', 'profile_picture', 'bio',
+                  'address_line1', 'address_line2', 'city', 'state',
+                  'country', 'postal_code', 'full_address',
+                  'email_notifications', 'sms_notifications',
+                  'date_joined', 'total_bookings', 'total_events_organized')
+        read_only_fields = ('id', 'role', 'status', 'date_joined', 'age',
+                           'is_adult', 'full_address')
     
     def get_total_bookings(self, obj):
         return obj.bookings.filter(status='confirmed').count()
@@ -362,3 +400,91 @@ class UserStatisticsSerializer(serializers.Serializer):
     total_tickets = serializers.IntegerField()
     total_spent = serializers.DecimalField(max_digits=15, decimal_places=2)
     upcoming_events = serializers.IntegerField()
+
+
+class PasswordStrengthSerializer(serializers.Serializer):
+    """Serializer for checking password strength"""
+    password = serializers.CharField(write_only=True, required=True)
+    
+    def validate_password(self, value):
+        """Check password strength and return feedback"""
+        strength_check = check_password_strength(value)
+        
+        if not strength_check['is_valid']:
+            error_message = "Password is too weak. " + "; ".join(strength_check['feedback'])
+            raise serializers.ValidationError(error_message)
+        
+        return value
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Serializer for changing password"""
+    old_password = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(
+        write_only=True, 
+        required=True,
+        validators=[validate_password]
+    )
+    new_password2 = serializers.CharField(write_only=True, required=True)
+    
+    # Configuration: Number of previous passwords to check
+    PASSWORD_HISTORY_COUNT = 5
+    
+    def validate_old_password(self, value):
+        """Verify old password is correct"""
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password is incorrect.")
+        return value
+    
+    def validate_new_password(self, value):
+        """Validate new password is not reused"""
+        user = self.context['request'].user
+        
+        # Check if new password is same as old password
+        if user.check_password(value):
+            raise serializers.ValidationError(
+                "New password cannot be the same as your current password."
+            )
+        
+        # Check password history
+        is_reused, message = PasswordHistory.check_password_reuse(
+            user, 
+            value, 
+            history_count=self.PASSWORD_HISTORY_COUNT
+        )
+        
+        if is_reused:
+            raise serializers.ValidationError(message)
+        
+        return value
+    
+    def validate(self, attrs):
+        """Validate passwords match and meet requirements"""
+        if attrs['new_password'] != attrs['new_password2']:
+            raise serializers.ValidationError(
+                {"new_password": "New password fields didn't match."}
+            )
+        
+        # Check password strength
+        strength_check = check_password_strength(attrs['new_password'])
+        if not strength_check['is_valid']:
+            raise serializers.ValidationError(
+                {"new_password": "Password is too weak. " + "; ".join(strength_check['feedback'])}
+            )
+        
+        return attrs
+    
+    def save(self):
+        """Update user password and save to history"""
+        user = self.context['request'].user
+        new_password = self.validated_data['new_password']
+        
+        # Set new password (this hashes it)
+        user.set_password(new_password)
+        user.save()
+        
+        # Add new password to history
+        PasswordHistory.add_password_to_history(user, user.password)
+        
+        return user

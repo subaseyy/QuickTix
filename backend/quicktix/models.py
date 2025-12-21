@@ -26,6 +26,14 @@ class User(AbstractUser):
         ('suspended', 'Suspended'),
     ]
     
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+        ('prefer_not_to_say', 'Prefer not to say'),
+    ]
+    
+    # Role and Status
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
@@ -37,10 +45,89 @@ class User(AbstractUser):
         default='active'
     )
     
+    # Personal Information
+    date_of_birth = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Date of birth for age verification'
+    )
+    gender = models.CharField(
+        max_length=20,
+        choices=GENDER_CHOICES,
+        blank=True,
+        null=True
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text='Contact number for booking notifications'
+    )
+    
+    # Profile Information
+    profile_picture = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text='URL to profile picture'
+    )
+    bio = models.TextField(
+        blank=True,
+        null=True,
+        help_text='Short biography (useful for organizers)'
+    )
+    
+    # Address Information
+    address_line1 = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+    address_line2 = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
+    city = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+    state = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True
+    )
+    country = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        default='NEPAL'
+    )
+    postal_code = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True
+    )
+    
+    # Additional Settings
+    email_notifications = models.BooleanField(
+        default=True,
+        help_text='Receive email notifications for bookings'
+    )
+    sms_notifications = models.BooleanField(
+        default=False,
+        help_text='Receive SMS notifications'
+    )
+    
     class Meta:
         db_table = 'users'
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['role', 'status']),
+        ]
     
     def __str__(self):
         return f"{self.email} ({self.role})"
@@ -50,6 +137,48 @@ class User(AbstractUser):
     
     def is_admin(self):
         return self.role == 'admin'
+    
+    @property
+    def age(self):
+        """Calculate age from date of birth"""
+        if not self.date_of_birth:
+            return None
+        
+        from datetime import date
+        today = date.today()
+        age = today.year - self.date_of_birth.year
+        
+        # Check if birthday has occurred this year
+        if today.month < self.date_of_birth.month or \
+           (today.month == self.date_of_birth.month and today.day < self.date_of_birth.day):
+            age -= 1
+        
+        return age
+    
+    @property
+    def is_adult(self):
+        """Check if user is 18 or older"""
+        if self.age is None:
+            return None
+        return self.age >= 18
+    
+    @property
+    def full_address(self):
+        """Get formatted full address"""
+        address_parts = [
+            self.address_line1,
+            self.address_line2,
+            self.city,
+            self.state,
+            self.postal_code,
+            self.country
+        ]
+        return ', '.join(filter(None, address_parts))
+    
+    def get_full_name(self):
+        """Override to return first and last name"""
+        full_name = super().get_full_name()
+        return full_name if full_name else self.username
 
 
 class Event(models.Model):
@@ -384,3 +513,70 @@ class OrganizerApplication(models.Model):
             self.user.role = 'organizer'
             self.user.status = 'active'
             self.user.save()
+
+
+class PasswordHistory(models.Model):
+    """
+    Track password history to prevent reuse
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='password_history'
+    )
+    password = models.CharField(
+        max_length=255,
+        help_text='Hashed password'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'password_history'
+        ordering = ['-created_at']
+        verbose_name = 'Password History'
+        verbose_name_plural = 'Password Histories'
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+    
+    @classmethod
+    def check_password_reuse(cls, user, new_password, history_count=5):
+        """
+        Check if password has been used before
+        
+        Args:
+            user: User instance
+            new_password: Plain text password to check
+            history_count: Number of previous passwords to check
+        
+        Returns:
+            tuple: (is_reused, message)
+        """
+        from django.contrib.auth.hashers import check_password
+        
+        # Get last N passwords
+        previous_passwords = cls.objects.filter(user=user).order_by('-created_at')[:history_count]
+        
+        for old_password in previous_passwords:
+            if check_password(new_password, old_password.password):
+                return True, f"You cannot reuse your last {history_count} passwords."
+        
+        return False, None
+    
+    @classmethod
+    def add_password_to_history(cls, user, hashed_password):
+        """
+        Add password to history
+        
+        Args:
+            user: User instance
+            hashed_password: Already hashed password
+        """
+        cls.objects.create(user=user, password=hashed_password)
+        
+        # Clean up old password history (keep only last 10)
+        old_passwords = cls.objects.filter(user=user).order_by('-created_at')[10:]
+        cls.objects.filter(id__in=[p.id for p in old_passwords]).delete()
