@@ -1,1 +1,52 @@
-django==6.0
+# QuickTix Backend Requirements
+
+# Django & DRF
+Django==6.0
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+
+# Authentication
+djangorestframework-simplejwt==5.3.1
+PyJWT==2.8.0
+
+# Database
+# psycopg2-binary==2.9.9  # PostgreSQL adapter
+mysqlclient==2.2.1      # MySQL adapter (optional)
+
+# Payment Gateways
+stripe==7.10.0
+razorpay==1.4.2
+
+
+# Environment Variables
+python-decouple==3.8
+python-dotenv==1.0.0
+
+# Image Handling
+# Pillow==10.1.0
+
+# API Documentation
+drf-yasg==1.21.7
+drf-spectacular==0.27.0
+
+# Utilities
+django-filter==23.5
+django-phonenumber-field==7.3.0
+phonenumbers==8.13.27
+
+# Development
+django-debug-toolbar==4.2.0
+faker==22.0.0
+
+# Testing
+pytest==7.4.3
+pytest-django==4.7.0
+factory-boy==3.3.0
+
+# Code Quality
+flake8==7.0.0
+black==23.12.1
+
+# WSGI Server
+gunicorn==21.2.0
+whitenoise==6.6.0
