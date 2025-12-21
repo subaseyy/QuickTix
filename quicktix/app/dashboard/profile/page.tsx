@@ -14,8 +14,13 @@ export default function ProfilePage() {
             <Navbar />
 
             {/* Page Header */}
-            <div className="bg-gradient-to-r from-primary-600 to-secondary-600 py-12">
+
+
+            <div className="bg-gradient-to-r from-primary-600 to-secondary-600 py-16">
                 <div className="container-custom">
+                    <br />
+                    <br />
+
                     <h1 className="text-4xl font-bold text-white mb-2">My Profile</h1>
                     <p className="text-white/90">Manage your account settings and preferences</p>
                 </div>

@@ -16,6 +16,8 @@ export default function OrganizerDashboardPage() {
             {/* Page Header */}
             <div className="bg-gradient-to-r from-primary-600 to-secondary-600 py-12">
                 <div className="container-custom">
+                    <br />
+                    <br />
                     <h1 className="text-4xl font-bold text-white mb-2">Organizer Dashboard</h1>
                     <p className="text-white/90">Manage your events and track performance</p>
                 </div>
