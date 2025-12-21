@@ -21,13 +21,14 @@ export default function Navbar() {
         { href: '/how-it-works', label: 'How It Works' },
         { href: '/become-organizer', label: 'Become an Organizer' },
         { href: '/about', label: 'About' },
+        { href: '/contact', label: 'Contact' },
     ]
 
     return (
         <nav
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-                    ? 'bg-white/95 backdrop-blur-md shadow-md'
-                    : 'bg-transparent'
+                ? 'bg-white/95 backdrop-blur-md shadow-md'
+                : 'bg-transparent'
                 }`}
         >
             <div className="container-custom">
@@ -47,8 +48,8 @@ export default function Navbar() {
                                 key={link.href}
                                 href={link.href}
                                 className={`font-medium transition-colors duration-200 ${isScrolled
-                                        ? 'text-gray-700 hover:text-primary-600'
-                                        : 'text-white hover:text-primary-200'
+                                    ? 'text-gray-700 hover:text-primary-600'
+                                    : 'text-white hover:text-primary-200'
                                     }`}
                             >
                                 {link.label}
@@ -60,23 +61,23 @@ export default function Navbar() {
                     <div className="hidden lg:flex items-center space-x-4">
                         <button
                             className={`p-2 rounded-lg transition-colors duration-200 ${isScrolled
-                                    ? 'text-gray-700 hover:bg-gray-100'
-                                    : 'text-white hover:bg-white/10'
+                                ? 'text-gray-700 hover:bg-gray-100'
+                                : 'text-white hover:bg-white/10'
                                 }`}
                         >
                             <Search className="w-5 h-5" />
                         </button>
                         <Link
-                            href="/login"
+                            href="/auth/login"
                             className={`px-4 py-2 font-medium rounded-lg transition-colors duration-200 ${isScrolled
-                                    ? 'text-gray-700 hover:bg-gray-100'
-                                    : 'text-white hover:bg-white/10'
+                                ? 'text-gray-700 hover:bg-gray-100'
+                                : 'text-white hover:bg-white/10'
                                 }`}
                         >
                             Sign In
                         </Link>
                         <Link
-                            href="/register"
+                            href="/auth/register"
                             className="btn btn-primary btn-md"
                         >
                             Get Started
@@ -87,8 +88,8 @@ export default function Navbar() {
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         className={`lg:hidden p-2 rounded-lg transition-colors duration-200 ${isScrolled
-                                ? 'text-gray-700 hover:bg-gray-100'
-                                : 'text-white hover:bg-white/10'
+                            ? 'text-gray-700 hover:bg-gray-100'
+                            : 'text-white hover:bg-white/10'
                             }`}
                     >
                         {isMobileMenuOpen ? (
