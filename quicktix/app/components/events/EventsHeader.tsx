@@ -11,6 +11,8 @@ export default function EventsHeader() {
         <div className="bg-gradient-to-r from-primary-600 to-secondary-600 py-16">
             <div className="container-custom">
                 {/* Title & Breadcrumb */}
+                 <br />
+      <br />
                 <div className="mb-8">
                     <div className="text-white/80 text-sm mb-2">
                         <span className="hover:underline cursor-pointer">Home</span>
