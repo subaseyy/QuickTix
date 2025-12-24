@@ -246,16 +246,16 @@ CORS_ALLOW_HEADERS = [
 STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 
-RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
-RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
+# RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
+# RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
 
 # Email Settings (for notifications)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_HOST = config('EMAIL_HOST', default='nova.mysecurecloudserver.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='lifepulse@subaskandel.com.np')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='3fjJazEgVyJD4NMc')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@quicktix.com')
 
 # Security Settings for Production
