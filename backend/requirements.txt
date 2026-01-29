@@ -1,52 +1,55 @@
-# QuickTix Backend Requirements
-
-# Django & DRF
+asgiref==3.11.0
+attrs==25.4.0
+black==23.12.1
+certifi==2026.1.4
+charset-normalizer==3.4.4
+click==8.3.1
 Django==6.0
-djangorestframework==3.14.0
 django-cors-headers==4.3.1
-
-# Authentication
-djangorestframework-simplejwt==5.3.1
-PyJWT==2.8.0
-
-# Database
-# psycopg2-binary==2.9.9  # PostgreSQL adapter
-mysqlclient==2.2.1      # MySQL adapter (optional)
-
-# Payment Gateways
-stripe==7.10.0
-razorpay==1.4.2
-
-
-# Environment Variables
-python-decouple==3.8
-python-dotenv==1.0.0
-
-# Image Handling
-# Pillow==10.1.0
-
-# API Documentation
-drf-yasg==1.21.7
-drf-spectacular==0.27.0
-
-# Utilities
-django-filter==23.5
-django-phonenumber-field==7.3.0
-phonenumbers==8.13.27
-
-# Development
 django-debug-toolbar==4.2.0
-faker==22.0.0
-
-# Testing
+django-filter==24.3
+django-jazzmin==3.0.1
+django-phonenumber-field==7.3.0
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+drf-spectacular==0.27.0
+drf-yasg==1.21.7
+factory-boy==3.3.0
+Faker==22.0.0
+flake8==7.0.0
+gunicorn==21.2.0
+idna==3.11
+inflection==0.5.1
+iniconfig==2.3.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+mccabe==0.7.0
+mypy_extensions==1.1.0
+mysqlclient==2.2.1
+packaging==26.0
+pathspec==1.0.4
+phonenumbers==8.13.27
+platformdirs==4.5.1
+pluggy==1.6.0
+pycodestyle==2.11.1
+pyflakes==3.2.0
+PyJWT==2.8.0
 pytest==7.4.3
 pytest-django==4.7.0
-factory-boy==3.3.0
-
-# Code Quality
-flake8==7.0.0
-black==23.12.1
-
-# WSGI Server
-gunicorn==21.2.0
+python-dateutil==2.9.0.post0
+python-decouple==3.8
+python-dotenv==1.0.0
+pytz==2025.2
+PyYAML==6.0.3
+razorpay==1.4.2
+referencing==0.37.0
+requests==2.32.5
+rpds-py==0.30.0
+setuptools==80.10.2
+six==1.17.0
+sqlparse==0.5.5
+stripe==7.10.0
+typing_extensions==4.15.0
+uritemplate==4.2.0
+urllib3==2.6.3
 whitenoise==6.6.0
