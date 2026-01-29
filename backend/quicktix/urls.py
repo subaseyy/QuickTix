@@ -9,7 +9,6 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
-from .serializers import EmailTokenObtainPairSerializer
 
 from .views import (
     UserViewSet,
@@ -19,6 +18,13 @@ from .views import (
     OrganizerApplicationViewSet,
     StatisticsViewSet,
 )
+from .serializers import EmailTokenObtainPairSerializer
+
+
+# Custom JWT view that uses email instead of username
+class EmailTokenObtainPairView(TokenObtainPairView):
+    serializer_class = EmailTokenObtainPairSerializer
+
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -29,16 +35,11 @@ router.register(r'payments', PaymentViewSet, basename='payment')
 router.register(r'organizer-applications', OrganizerApplicationViewSet, basename='organizer-application')
 router.register(r'statistics', StatisticsViewSet, basename='statistics')
 
-class EmailTokenObtainPairView(TokenObtainPairView):
-    serializer_class = EmailTokenObtainPairSerializer
-
 urlpatterns = [
     # JWT Authentication endpoints
-#     path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/', EmailTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-
     
     # API endpoints
     path('', include(router.urls)),
@@ -49,6 +50,8 @@ custom_patterns = [
     # User endpoints
     path('users/profile/', UserViewSet.as_view({'get': 'profile'}), name='user-profile'),
     path('users/profile/update/', UserViewSet.as_view({'patch': 'update_profile'}), name='user-profile-update'),
+    path('users/change-password/', UserViewSet.as_view({'post': 'change_password'}), name='user-change-password'),
+    path('users/check-password-strength/', UserViewSet.as_view({'post': 'check_password_strength'}), name='check-password-strength'),
     
     # Event endpoints
     path('events/my-events/', EventViewSet.as_view({'get': 'my_events'}), name='my-events'),

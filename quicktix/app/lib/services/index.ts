@@ -1,289 +1,408 @@
-import api, { handleApiError, PaginatedResponse } from '../api'
-import type {
-    Payment,
-    PaymentCreate,
-    OrganizerApplication,
-    OrganizerApplicationCreate,
-    OrganizerApplicationReview,
-    PlatformStatistics,
-    OrganizerStatistics,
-    UserStatistics,
-} from '../types'
+import api, { handleApiError, ApiError } from '../api'
 
 // ============================================
-// RE-EXPORT ALL TYPES FOR CONVENIENCE
+// TYPE DEFINITIONS
 // ============================================
-// Now you can import both services AND types from '@/lib/services'
 
-export type {
-    // User & Auth Types
-    User,
-    UserProfile,
-    LoginCredentials,
-    RegisterData,
-    AuthTokens,
-    AuthResponse,
-    PasswordChange,
-    PasswordStrength,
-
-    // Event Types
-    Event,
-    EventCreate,
-    EventFilters,
-
-    // Booking Types
-    Booking,
-    BookingCreate,
-    BookingFilters,
-
-    // Payment Types
-    Payment,
-    PaymentCreate,
-
-    // Organizer Application Types
-    OrganizerApplication,
-    OrganizerApplicationCreate,
-    OrganizerApplicationReview,
-
-    // Statistics Types
-    PlatformStatistics,
-    OrganizerStatistics,
-    UserStatistics,
-
-    // API Response Types
-    ApiError,
-    PaginatedResponse,
-
-    // Form Types
-    ContactFormData,
-    SearchParams,
-} from '../types/index'
-
-// Payments Service
-export const paymentsService = {
-    // Get all payments
-    async getPayments(filters?: { page?: number }): Promise<PaginatedResponse<Payment>> {
-        try {
-            const params = new URLSearchParams()
-            if (filters?.page) params.append('page', filters.page.toString())
-
-            const response = await api.get<PaginatedResponse<Payment>>('/payments/', { params })
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Get single payment
-    async getPayment(id: number): Promise<Payment> {
-        try {
-            const response = await api.get<Payment>(`/payments/${id}/`)
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Create payment
-    async createPayment(data: PaymentCreate): Promise<Payment> {
-        try {
-            const response = await api.post<Payment>('/payments/', data)
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Get my payments
-    async getMyPayments(): Promise<Payment[]> {
-        try {
-            const response = await api.get<Payment[]>('/payments/my-payments/')
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Process payment
-    async processPayment(id: number): Promise<{ message: string; transaction_id: string }> {
-        try {
-            const response = await api.post(`/payments/${id}/process/`)
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
+export interface User {
+  id: number
+  username: string
+  email: string
+  first_name: string
+  last_name: string
+  role: 'user' | 'organizer' | 'admin'
+  status: 'active' | 'pending' | 'suspended'
+  phone_number?: string
+  date_of_birth?: string
+  gender?: string
+  bio?: string
+  address_line1?: string
+  address_line2?: string
+  city?: string
+  state?: string
+  country?: string
+  postal_code?: string
+  profile_picture?: string
+  email_notifications: boolean
+  sms_notifications: boolean
+  date_joined: string
+  age?: number
+  is_adult?: boolean
+  full_address?: string
 }
 
-// Organizer Applications Service
-export const organizerService = {
-    // Get all applications
-    async getApplications(filters?: { page?: number }): Promise<PaginatedResponse<OrganizerApplication>> {
-        try {
-            const params = new URLSearchParams()
-            if (filters?.page) params.append('page', filters.page.toString())
-
-            const response = await api.get<PaginatedResponse<OrganizerApplication>>(
-                '/organizer-applications/',
-                { params }
-            )
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Get single application
-    async getApplication(id: number): Promise<OrganizerApplication> {
-        try {
-            const response = await api.get<OrganizerApplication>(`/organizer-applications/${id}/`)
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Create application
-    async createApplication(data: OrganizerApplicationCreate): Promise<OrganizerApplication> {
-        try {
-            const response = await api.post<OrganizerApplication>('/organizer-applications/', data)
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Get my applications
-    async getMyApplications(): Promise<OrganizerApplication[]> {
-        try {
-            const response = await api.get<OrganizerApplication[]>(
-                '/organizer-applications/my-applications/'
-            )
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Get pending applications (admin only)
-    async getPendingApplications(): Promise<OrganizerApplication[]> {
-        try {
-            const response = await api.get<OrganizerApplication[]>(
-                '/organizer-applications/pending/'
-            )
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Review application (admin only)
-    async reviewApplication(
-        id: number,
-        data: OrganizerApplicationReview
-    ): Promise<OrganizerApplication> {
-        try {
-            const response = await api.post<OrganizerApplication>(
-                `/organizer-applications/${id}/review/`,
-                data
-            )
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Approve application
-    async approveApplication(
-        id: number,
-        adminNotes?: string
-    ): Promise<{ message: string }> {
-        try {
-            const response = await api.post<{ message: string }>(
-                `/organizer-applications/${id}/approve/`,
-                { admin_notes: adminNotes }
-            )
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
-
-    // Reject application
-    async rejectApplication(
-        id: number,
-        adminNotes?: string
-    ): Promise<{ message: string }> {
-        try {
-            const response = await api.post<{ message: string }>(
-                `/organizer-applications/${id}/reject/`,
-                { admin_notes: adminNotes }
-            )
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
+export interface LoginCredentials {
+  email: string
+  password: string
 }
 
-// Statistics Service
-export const statisticsService = {
-    // Get platform statistics (admin only)
-    async getPlatformStatistics(): Promise<PlatformStatistics> {
-        try {
-            const response = await api.get<PlatformStatistics>('/statistics/platform/')
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
+export interface RegisterData {
+  username: string
+  email: string
+  password: string
+  password2: string
+  first_name: string
+  last_name: string
+  date_of_birth?: string
+  gender?: string
+  phone_number?: string
+  city?: string
+  country?: string
+}
 
-    // Get organizer statistics
-    async getOrganizerStatistics(): Promise<OrganizerStatistics> {
-        try {
-            const response = await api.get<OrganizerStatistics>('/statistics/organizer/')
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
+export interface AuthResponse {
+  access: string
+  refresh: string
+  user: User
+}
 
-    // Get user statistics
-    async getUserStatistics(): Promise<UserStatistics> {
-        try {
-            const response = await api.get<UserStatistics>('/statistics/user/')
-            return response.data
-        } catch (error) {
-            throw handleApiError(error)
-        }
-    },
+export interface ChangePasswordData {
+  old_password: string
+  new_password: string
+  new_password2: string
+}
+
+export interface UpdateProfileData {
+  first_name?: string
+  last_name?: string
+  username?: string
+  email?: string
+  phone_number?: string
+  date_of_birth?: string
+  gender?: string
+  bio?: string
+  address_line1?: string
+  address_line2?: string
+  city?: string
+  state?: string
+  postal_code?: string
+  country?: string
+  email_notifications?: boolean
+  sms_notifications?: boolean
 }
 
 // ============================================
-// DEFAULT EXPORT
+// AUTHENTICATION SERVICES
 // ============================================
 
-export default {
-    payments: paymentsService,
-    organizer: organizerService,
-    statistics: statisticsService,
+export const authService = {
+  /**
+   * Login user with email and password
+   */
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    try {
+      const response = await api.post<AuthResponse>('/auth/token/', credentials)
+
+      // Save tokens and user to localStorage
+      localStorage.setItem('accessToken', response.data.access)
+      localStorage.setItem('refreshToken', response.data.refresh)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Register new user
+   */
+  async register(data: RegisterData): Promise<User> {
+    try {
+      const response = await api.post<User>('/users/', data)
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Logout user
+   */
+  logout(): void {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+  },
+
+  /**
+   * Refresh access token
+   */
+  async refreshToken(refreshToken: string): Promise<{ access: string }> {
+    try {
+      const response = await api.post<{ access: string }>('/auth/token/refresh/', {
+        refresh: refreshToken,
+      })
+
+      localStorage.setItem('accessToken', response.data.access)
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Verify if token is valid
+   */
+  async verifyToken(token: string): Promise<boolean> {
+    try {
+      await api.post('/auth/token/verify/', { token })
+      return true
+    } catch (error) {
+      return false
+    }
+  },
 }
 
 // ============================================
-// USAGE EXAMPLES
+// USER/PROFILE SERVICES
 // ============================================
 
-/*
-// Import services (functions):
-import { paymentsService, organizerService, statisticsService } from '@/lib/services'
+export const userService = {
+  /**
+   * Get current user profile
+   */
+  async getProfile(): Promise<User> {
+    try {
+      const response = await api.get<User>('/users/profile/')
 
-// Import types (interfaces):
-import type { User, Event, Booking, Payment } from '@/lib/services'
+      // Update localStorage with latest user data
+      localStorage.setItem('user', JSON.stringify(response.data))
 
-// Or import both at once:
-import { paymentsService, type User, type Event } from '@/lib/services'
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
 
-// Or use default import:
-import services from '@/lib/services'
-services.payments.getMyPayments()
-*/
+  /**
+   * Update user profile
+   */
+  async updateProfile(data: UpdateProfileData): Promise<User> {
+    try {
+      const response = await api.patch<User>('/users/profile/update/', data)
+
+      // Update localStorage with updated user data
+      localStorage.setItem('user', JSON.stringify(response.data))
+
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Change user password
+   */
+  async changePassword(data: ChangePasswordData): Promise<{ message: string }> {
+    try {
+      const response = await api.patch<{ message: string }>('/users/change-password/', data)
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Check password strength
+   */
+  async checkPasswordStrength(password: string): Promise<{
+    is_valid: boolean
+    strength: string
+    score: number
+    feedback: string[]
+    requirements: {
+      min_length: boolean
+      has_uppercase: boolean
+      has_lowercase: boolean
+      has_digit: boolean
+      has_special: boolean
+    }
+  }> {
+    try {
+      const response = await api.post('/users/check-password-strength/', { password })
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Get user by ID (admin only)
+   */
+  async getUserById(id: number): Promise<User> {
+    try {
+      const response = await api.get<User>(`/users/${id}/`)
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Update user by ID (admin only)
+   */
+  async updateUserById(id: number, data: Partial<User>): Promise<User> {
+    try {
+      const response = await api.patch<User>(`/users/${id}/`, data)
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Delete user by ID (admin only)
+   */
+  async deleteUser(id: number): Promise<void> {
+    try {
+      await api.delete(`/users/${id}/`)
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Get all users (admin only)
+   */
+  async getAllUsers(params?: {
+    page?: number
+    search?: string
+    role?: string
+    status?: string
+  }): Promise<{
+    count: number
+    next: string | null
+    previous: string | null
+    results: User[]
+  }> {
+    try {
+      const response = await api.get('/users/', { params })
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+}
+
+// ============================================
+// STATISTICS SERVICES
+// ============================================
+
+export const statsService = {
+  /**
+   * Get user statistics
+   */
+  async getUserStats(): Promise<{
+    total_bookings: number
+    total_tickets: number
+    total_spent: number
+    upcoming_events: number
+  }> {
+    try {
+      const response = await api.get('/statistics/user/')
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Get organizer statistics
+   */
+  async getOrganizerStats(): Promise<{
+    total_events: number
+    active_events: number
+    total_bookings: number
+    total_tickets_sold: number
+    total_revenue: number
+  }> {
+    try {
+      const response = await api.get('/statistics/organizer/')
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+
+  /**
+   * Get platform statistics (admin only)
+   */
+  async getPlatformStats(): Promise<{
+    total_users: number
+    total_organizers: number
+    total_events: number
+    active_events: number
+    total_bookings: number
+    total_revenue: number
+    pending_applications: number
+  }> {
+    try {
+      const response = await api.get('/statistics/platform/')
+      return response.data
+    } catch (error) {
+      throw handleApiError(error)
+    }
+  },
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Get current user from localStorage
+ */
+export const getCurrentUser = (): User | null => {
+  if (typeof window === 'undefined') return null
+
+  const userStr = localStorage.getItem('user')
+  if (!userStr) return null
+
+  try {
+    return JSON.parse(userStr) as User
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Check if user is authenticated
+ */
+export const isAuthenticated = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return !!localStorage.getItem('accessToken')
+}
+
+/**
+ * Get access token
+ */
+export const getAccessToken = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('accessToken')
+}
+
+/**
+ * Get refresh token
+ */
+export const getRefreshToken = (): string | null => {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('refreshToken')
+}
+
+// Export everything as a single object
+const apiService = {
+  auth: authService,
+  user: userService,
+  stats: statsService,
+  getCurrentUser,
+  isAuthenticated,
+  getAccessToken,
+  getRefreshToken,
+}
+
+export default apiService

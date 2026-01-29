@@ -21,7 +21,11 @@ import {
   Award
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+
 import { useAuth } from '@/app/lib/hooks'
+import apiService from '@/app/lib/services'
+
+
 
 export default function ProfileContent() {
   const { user } = useAuth()
@@ -99,13 +103,16 @@ export default function ProfileContent() {
     setLoading(true)
 
     try {
-      // TODO: API call to update personal info
-      // await api.updateProfile(personalInfo)
-
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
+      const updatedUser = await apiService.user.updateProfile(personalInfo)
       toast.success('Personal information updated successfully!')
-    } catch (error) {
-      toast.error('Failed to update personal information')
+
+      // Update local user state if needed
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update personal information'
+      toast.error(errorMessage)
       console.error(error)
     } finally {
       setLoading(false)
@@ -117,13 +124,16 @@ export default function ProfileContent() {
     setLoading(true)
 
     try {
-      // TODO: API call to update address
-      // await api.updateProfile(addressInfo)
-
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const updatedUser = await apiService.user.updateProfile(addressInfo)
       toast.success('Address updated successfully!')
-    } catch (error) {
-      toast.error('Failed to update address')
+
+      // Update local user state
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update address'
+      toast.error(errorMessage)
       console.error(error)
     } finally {
       setLoading(false)
@@ -134,13 +144,16 @@ export default function ProfileContent() {
     setLoading(true)
 
     try {
-      // TODO: API call to update notifications
-      // await api.updateProfile(notifications)
-
-      await new Promise(resolve => setTimeout(resolve, 500))
+      const updatedUser = await apiService.user.updateProfile(notifications)
       toast.success('Notification preferences updated!')
-    } catch (error) {
-      toast.error('Failed to update preferences')
+
+      // Update local user state
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to update preferences'
+      toast.error(errorMessage)
       console.error(error)
     } finally {
       setLoading(false)
@@ -163,19 +176,23 @@ export default function ProfileContent() {
     setLoading(true)
 
     try {
-      // TODO: API call to change password
-      // await api.changePassword(passwordData)
+      const response = await apiService.user.changePassword(passwordData)
+      toast.success(response.message || 'Password changed successfully!')
 
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success('Password changed successfully!')
+      // Clear password fields
       setPasswordData({
         old_password: '',
         new_password: '',
         new_password2: ''
       })
-    } catch (error) {
-      toast.error('Failed to change password')
-      console.error(error)
+    } catch (error: any) {
+      // Handle specific error messages from backend
+      const errorMessage = error.errors?.old_password?.[0] ||
+        error.errors?.new_password?.[0] ||
+        error.message ||
+        'Failed to change password'
+      toast.error(errorMessage)
+      console.error('Password change error:', error)
     } finally {
       setLoading(false)
     }

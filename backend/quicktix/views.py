@@ -2,6 +2,7 @@
 QuickTix Views
 Django REST Framework ViewSets for all models
 """
+import re
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -29,6 +30,8 @@ from .serializers import (
     EventStatisticsSerializer,
     OrganizerStatisticsSerializer,
     UserStatisticsSerializer,
+    PasswordStrengthSerializer,
+    PasswordChangeSerializer,
 )
 from .permissions import (
     IsAdmin,
@@ -87,6 +90,53 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def check_password_strength(self, request):
+        """
+        Check password strength without creating account
+        Useful for real-time password validation in frontend
+        """
+        from .validators import check_password_strength
+        
+        password = request.data.get('password', '')
+        if not password:
+            return Response(
+                {'error': 'Password field is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        strength_result = check_password_strength(password)
+        
+        return Response({
+            'is_valid': strength_result['is_valid'],
+            'strength': strength_result['strength'],
+            'score': strength_result['score'],
+            'max_score': strength_result['max_score'],
+            'feedback': strength_result['feedback'],
+            'requirements': {
+                'min_length': len(password) >= 8,
+                'has_uppercase': bool(re.search(r'[A-Z]', password)),
+                'has_lowercase': bool(re.search(r'[a-z]', password)),
+                'has_digit': bool(re.search(r'\d', password)),
+                'has_special': bool(re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;/`~]', password))
+            }
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def change_password(self, request):
+        """Change user password"""
+        serializer = PasswordChangeSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response({
+            'message': 'Password changed successfully',
+            'detail': 'Please login again with your new password'
+        })
 
 
 class EventViewSet(viewsets.ModelViewSet):
