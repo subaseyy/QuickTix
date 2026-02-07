@@ -40,14 +40,20 @@ export default function EventDetailPage() {
         setBooking(true);
         try {
             const response = await api.post('/bookings/', {
-                event: eventId,
+                event: parseInt(eventId as string), // Ensure it's a number
                 seats_booked: seats,
             });
 
             const bookingData = response.data;
             router.push(`/checkout?booking_id=${bookingData.id}`);
         } catch (error: any) {
-            alert(error.response?.data?.seats_booked?.[0] || error.response?.data?.non_field_errors?.[0] || 'Booking failed');
+            console.error('Booking error:', error.response?.data); // Debug log
+            const errorMsg = error.response?.data?.seats_booked?.[0]
+                || error.response?.data?.non_field_errors?.[0]
+                || error.response?.data?.event?.[0]
+                || JSON.stringify(error.response?.data)
+                || 'Booking failed';
+            alert(errorMsg);
         } finally {
             setBooking(false);
         }
