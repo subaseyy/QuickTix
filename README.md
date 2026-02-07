@@ -122,15 +122,15 @@ SecureTicket implements comprehensive security controls aligned with industry st
 
 ### Clone Repository
 ```bash
-git clone https://github.com/yourusername/securticket.git
-cd securticket
+git clone https://github.com/subaseyy/QuickTix.git
+cd QuickTix
 ```
 
 ### Backend Setup
 
 ```bash
 # Navigate to backend directory
-cd backend
+cd SecureTicket
 
 # Create virtual environment
 python -m venv venv
@@ -158,7 +158,7 @@ python manage.py runserver
 
 ```bash
 # Navigate to frontend directory
-cd frontend
+cd SecureTicket-frontend
 
 # Install dependencies
 npm install
@@ -257,8 +257,8 @@ npm run start
 ## 📁 Project Structure
 
 ```
-securticket/
-├── frontend/
+quicktix/
+├── SecureTicket-frontend/
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── page.tsx
@@ -276,7 +276,7 @@ securticket/
 │   ├── package.json
 │   └── next.config.js
 │
-├── backend/
+├── SecureTicket/
 │   ├── apps/
 │   │   ├── users/
 │   │   ├── tickets/
@@ -289,11 +289,6 @@ securticket/
 │   ├── manage.py
 │   ├── requirements.txt
 │   └── db.sqlite3
-│
-├── docs/
-│   ├── API.md
-│   ├── SECURITY.md
-│   └── DEPLOYMENT.md
 │
 ├── .gitignore
 ├── README.md
