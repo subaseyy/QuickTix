@@ -10,21 +10,23 @@ class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = '__all__'
-        read_only_fields = ('user', 'booking_reference', 'created_at', 'updated_at')
+        read_only_fields = ('user', 'booking_reference', 'total_price', 'created_at', 'updated_at')
     
     def validate(self, attrs):
         event = attrs.get('event')
         seats_booked = attrs.get('seats_booked')
         
         if seats_booked > event.available_seats:
-            raise serializers.ValidationError(
-                f"Only {event.available_seats} seats available."
-            )
+            raise serializers.ValidationError({
+                'seats_booked': f"Only {event.available_seats} seats available."
+            })
         
         if seats_booked <= 0:
-            raise serializers.ValidationError("Must book at least 1 seat.")
+            raise serializers.ValidationError({
+                'seats_booked': "Must book at least 1 seat."
+            })
         
-        # Calculate total price
+        # Calculate total price automatically
         attrs['total_price'] = event.price * seats_booked
         
         return attrs

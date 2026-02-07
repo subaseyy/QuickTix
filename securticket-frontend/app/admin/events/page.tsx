@@ -20,6 +20,7 @@ export default function AdminEventsPage() {
         date: '',
         time: '',
         total_seats: 100,
+        available_seats: 100,  // Add this field
         price: 0,
     });
 
@@ -46,10 +47,13 @@ export default function AdminEventsPage() {
         e.preventDefault();
         try {
             if (editingEvent) {
+                // When editing, send available_seats from the form
                 await api.put(`/events/${editingEvent.id}/`, formData);
                 alert('Event updated successfully');
             } else {
-                await api.post('/events/', formData);
+                // When creating, available_seats will equal total_seats
+                const createData = { ...formData, available_seats: formData.total_seats };
+                await api.post('/events/', createData);
                 alert('Event created successfully');
             }
             setShowForm(false);
@@ -57,7 +61,11 @@ export default function AdminEventsPage() {
             resetForm();
             fetchEvents();
         } catch (error: any) {
-            alert(error.response?.data?.detail || 'Failed to save event');
+            console.error('Error saving event:', error.response?.data);
+            const errorMsg = error.response?.data?.detail
+                || JSON.stringify(error.response?.data)
+                || 'Failed to save event';
+            alert(errorMsg);
         }
     };
 
@@ -71,7 +79,8 @@ export default function AdminEventsPage() {
             date: event.date,
             time: event.time,
             total_seats: event.total_seats,
-            price: event.price,
+            available_seats: event.available_seats,  // Include this
+            price: parseFloat(event.price),
         });
         setShowForm(true);
     };
@@ -98,6 +107,7 @@ export default function AdminEventsPage() {
             date: '',
             time: '',
             total_seats: 100,
+            available_seats: 100,
             price: 0,
         });
     };
@@ -115,35 +125,35 @@ export default function AdminEventsPage() {
                                 setEditingEvent(null);
                                 resetForm();
                             }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-bold"
                         >
                             {showForm ? 'Cancel' : 'Create Event'}
                         </button>
                     </div>
 
                     {showForm && (
-                        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-                            <h2 className="text-xl font-bold mb-4">
+                        <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border-2 border-gray-200">
+                            <h2 className="text-xl font-bold mb-4 text-gray-900">
                                 {editingEvent ? 'Edit Event' : 'Create New Event'}
                             </h2>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Title</label>
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">Title</label>
                                         <input
                                             type="text"
                                             required
                                             value={formData.title}
                                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Category</label>
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">Category</label>
                                         <select
                                             value={formData.category}
                                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         >
                                             <option value="movie">Movie</option>
                                             <option value="concert">Concert</option>
@@ -154,63 +164,91 @@ export default function AdminEventsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Description</label>
                                     <textarea
                                         required
                                         value={formData.description}
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         rows={3}
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Venue</label>
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">Venue</label>
                                         <input
                                             type="text"
                                             required
                                             value={formData.venue}
                                             onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Total Seats</label>
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">Total Seats</label>
                                         <input
                                             type="number"
                                             required
                                             min="1"
                                             value={formData.total_seats}
-                                            onChange={(e) => setFormData({ ...formData, total_seats: parseInt(e.target.value) })}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            onChange={(e) => {
+                                                const newTotal = parseInt(e.target.value);
+                                                setFormData({
+                                                    ...formData,
+                                                    total_seats: newTotal,
+                                                    // When creating new event, available = total
+                                                    available_seats: editingEvent ? formData.available_seats : newTotal
+                                                });
+                                            }}
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         />
                                     </div>
                                 </div>
 
+                                {editingEvent && (
+                                    <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4">
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">
+                                            Available Seats (Current: {formData.available_seats})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            required
+                                            min="0"
+                                            max={formData.total_seats}
+                                            value={formData.available_seats}
+                                            onChange={(e) => setFormData({ ...formData, available_seats: parseInt(e.target.value) })}
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
+                                        />
+                                        <p className="mt-2 text-sm text-yellow-800 font-semibold">
+                                            ⚠️ Booked seats: {formData.total_seats - formData.available_seats}
+                                        </p>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Date</label>
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">Date</label>
                                         <input
                                             type="date"
                                             required
                                             value={formData.date}
                                             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Time</label>
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">Time</label>
                                         <input
                                             type="time"
                                             required
                                             value={formData.time}
                                             onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Price ($)</label>
+                                        <label className="block text-sm font-bold text-gray-900 mb-2">Price ($)</label>
                                         <input
                                             type="number"
                                             required
@@ -218,14 +256,14 @@ export default function AdminEventsPage() {
                                             step="0.01"
                                             value={formData.price}
                                             onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            className="mt-1 block w-full px-3 py-2 border-2 border-gray-300 rounded-md text-gray-900 font-semibold"
                                         />
                                     </div>
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md"
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-md font-bold text-base"
                                 >
                                     {editingEvent ? 'Update Event' : 'Create Event'}
                                 </button>
@@ -238,36 +276,40 @@ export default function AdminEventsPage() {
                             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="bg-white rounded-lg shadow overflow-hidden border-2 border-gray-200">
                             <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-gray-100">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Seats</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Title</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Category</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Seats</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Price</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-900 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {events.map((event: any) => (
-                                        <tr key={event.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap font-medium">{event.title}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{event.category}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{new Date(event.date).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{event.available_seats}/{event.total_seats}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">${event.price}</td>
+                                        <tr key={event.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">{event.title}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-800">{event.category}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-800">
+                                                {new Date(event.date).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-800">
+                                                {event.available_seats}/{event.total_seats}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap font-bold text-indigo-600">${event.price}</td>
                                             <td className="px-6 py-4 whitespace-nowrap space-x-2">
                                                 <button
                                                     onClick={() => handleEdit(event)}
-                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                    className="text-indigo-600 hover:text-indigo-900 font-bold"
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(event.id)}
-                                                    className="text-red-600 hover:text-red-900"
+                                                    className="text-red-600 hover:text-red-900 font-bold"
                                                 >
                                                     Delete
                                                 </button>

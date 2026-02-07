@@ -54,6 +54,9 @@ def register(request):
 @permission_classes([AllowAny])
 @ratelimit(key='ip', rate='5/15m', method='POST')
 def login(request):
+    from django.utils import timezone
+    from datetime import timedelta
+    
     username = request.data.get('username')
     password = request.data.get('password')
     
@@ -62,7 +65,46 @@ def login(request):
             'error': 'Please provide both username and password'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    # Pass request to authenticate for Axes compatibility
+    # Check if user exists and is locked
+    try:
+        user_check = User.objects.get(username=username)
+        
+        # Check if account is locked
+        if user_check.locked_until and user_check.locked_until > timezone.now():
+            time_remaining = (user_check.locked_until - timezone.now()).total_seconds()
+            minutes_remaining = int(time_remaining / 60)
+            seconds_remaining = int(time_remaining % 60)
+            
+            # Log locked account attempt
+            ActivityLog.objects.create(
+                user=user_check,
+                action='Login Attempt - Account Locked',
+                ip_address=get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                metadata={
+                    'locked_until': user_check.locked_until.isoformat(),
+                    'time_remaining': f"{minutes_remaining}m {seconds_remaining}s"
+                }
+            )
+            
+            return Response({
+                'error': f'Account is locked due to too many failed login attempts. Please try again in {minutes_remaining} minutes and {seconds_remaining} seconds.',
+                'locked': True,
+                'locked_until': user_check.locked_until.isoformat(),
+                'minutes_remaining': minutes_remaining,
+                'seconds_remaining': seconds_remaining
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # If lock period has expired, unlock the account
+        if user_check.locked_until and user_check.locked_until <= timezone.now():
+            user_check.locked_until = None
+            user_check.failed_login_attempts = 0
+            user_check.save()
+    
+    except User.DoesNotExist:
+        pass
+    
+    # Attempt authentication
     user = authenticate(request=request, username=username, password=password)
     
     if user:
@@ -89,17 +131,63 @@ def login(request):
             'message': 'Login successful'
         }, status=status.HTTP_200_OK)
     else:
-        # Log failed login attempt
+        # Handle failed login
         try:
-            user = User.objects.get(username=username)
-            ActivityLog.objects.create(
-                user=user,
-                action='User Login - Failed',
-                ip_address=get_client_ip(request),
-                user_agent=request.META.get('HTTP_USER_AGENT', '')
-            )
+            user_obj = User.objects.get(username=username)
+            user_obj.failed_login_attempts += 1
+            
+            # Lock account after 5 failed attempts for 30 minutes
+            if user_obj.failed_login_attempts >= 5:
+                user_obj.locked_until = timezone.now() + timedelta(minutes=30)
+                user_obj.save()
+                
+                # Log account lockout
+                ActivityLog.objects.create(
+                    user=user_obj,
+                    action='Account Locked - Too Many Failed Attempts',
+                    ip_address=get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={
+                        'failed_attempts': user_obj.failed_login_attempts,
+                        'locked_until': user_obj.locked_until.isoformat()
+                    }
+                )
+                
+                return Response({
+                    'error': 'Account locked due to too many failed login attempts. Please try again in 30 minutes.',
+                    'locked': True,
+                    'attempts': user_obj.failed_login_attempts
+                }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                user_obj.save()
+                attempts_remaining = 5 - user_obj.failed_login_attempts
+                
+                # Log failed attempt
+                ActivityLog.objects.create(
+                    user=user_obj,
+                    action='User Login - Failed',
+                    ip_address=get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    metadata={
+                        'failed_attempts': user_obj.failed_login_attempts,
+                        'attempts_remaining': attempts_remaining
+                    }
+                )
+                
+                return Response({
+                    'error': f'Invalid credentials. {attempts_remaining} attempts remaining before account lockout.',
+                    'attempts_remaining': attempts_remaining
+                }, status=status.HTTP_401_UNAUTHORIZED)
+        
         except User.DoesNotExist:
-            pass
+            # Username doesn't exist - don't reveal this info
+            ActivityLog.objects.create(
+                user=None,
+                action='Login Attempt - Unknown Username',
+                ip_address=get_client_ip(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                metadata={'username_attempted': username}
+            )
         
         return Response({
             'error': 'Invalid credentials'
