@@ -1,0 +1,87 @@
+# ===============================
+# Python / Django
+# ===============================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+.virtualenv/
+
+# Django specific
+*.log
+local_settings.py
+# db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Django migrations cache
+**/migrations/__pycache__/
+
+# ===============================
+# Environment & secrets
+# ===============================
+.env
+.env.*
+!.env.example
+
+# ===============================
+# Build / packaging
+# ===============================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ===============================
+# Testing / coverage
+# ===============================
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.tox/
+
+# ===============================
+# IDEs / Editors
+# ===============================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# ===============================
+# OS files
+# ===============================
+Thumbs.db
+
+# ===============================
+# Node / Frontend (if used)
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===============================
+# Celery / Redis
+# ===============================
+celerybeat-schedule
+celerybeat.pid
+
+# ===============================
+# Docker
+# ===============================
+*.pid
+*.sock
+
+# ===============================
+# Temporary / cache
+# ===============================
+.cache/
