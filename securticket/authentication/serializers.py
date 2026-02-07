@@ -87,4 +87,43 @@ class PasswordStrengthSerializer(serializers.Serializer):
         strength = {
             'score': 0,
             'feedback': [],
-            'has_upperc
+            'has_uppercase': bool(re.search(r'[A-Z]', value)),
+            'has_lowercase': bool(re.search(r'[a-z]', value)),
+            'has_digit': bool(re.search(r'\d', value)),
+            'has_special': bool(re.search(r'[!@#$%^&*(),.?":{}|<>]', value)),
+            'length': len(value)
+        }
+        
+        # Calculate score
+        if strength['length'] >= 8:
+            strength['score'] += 1
+        if strength['has_uppercase']:
+            strength['score'] += 1
+        if strength['has_lowercase']:
+            strength['score'] += 1
+        if strength['has_digit']:
+            strength['score'] += 1
+        if strength['has_special']:
+            strength['score'] += 1
+        
+        # Provide feedback
+        if not strength['has_uppercase']:
+            strength['feedback'].append('Add uppercase letters')
+        if not strength['has_lowercase']:
+            strength['feedback'].append('Add lowercase letters')
+        if not strength['has_digit']:
+            strength['feedback'].append('Add numbers')
+        if not strength['has_special']:
+            strength['feedback'].append('Add special characters')
+        if strength['length'] < 8:
+            strength['feedback'].append('Use at least 8 characters')
+        
+        # Determine strength level
+        if strength['score'] <= 2:
+            strength['level'] = 'weak'
+        elif strength['score'] <= 4:
+            strength['level'] = 'medium'
+        else:
+            strength['level'] = 'strong'
+        
+        return strength
